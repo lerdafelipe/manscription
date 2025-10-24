@@ -16,12 +16,12 @@ interface GoogleTokenResponse {
   id_token: string
 }
 
-interface GoogleUserInfo {
-  sub: string
-  email: string
-  name: string
-  picture?: string
-  email_verified: boolean
+interface GoogleUserInfoOIDC {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
+  email_verified: boolean;
 }
 
 export async function GET(request: NextRequest) {
@@ -61,29 +61,33 @@ export async function GET(request: NextRequest) {
     const tokens: GoogleTokenResponse = await tokenResponse.json()
 
     // Get user info from Google
-    const userInfoResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
-      },
-    })
+    const userInfoResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
 
     if (!userInfoResponse.ok) {
       console.error("[v0] User info fetch failed:", await userInfoResponse.text())
       return NextResponse.redirect(new URL("/login?error=user_info_failed", request.url))
     }
 
-    const userInfo: GoogleUserInfo = await userInfoResponse.json()
+    const userInfo: GoogleUserInfoOIDC = await userInfoResponse.json()
 
     if (!userInfo.email_verified) {
       return NextResponse.redirect(new URL("/login?error=email_not_verified", request.url))
     }
 
     // Create or get user
-    const user = await createOAuthUser(userInfo.email, userInfo.name, "google", userInfo.sub, userInfo.picture)
+    const user = await createOAuthUser(
+      userInfo.email,
+      userInfo.name,
+      "google",
+      userInfo.sub,
+      userInfo.picture
+    );
 
     // Create session
     const response = NextResponse.redirect(new URL(state, request.url))
-    await createSession(user.id, response)
+    await createSession(user.id)
 
     return response
   } catch (error) {
