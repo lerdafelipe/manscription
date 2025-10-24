@@ -106,12 +106,12 @@ export function PWAInstallPrompt() {
             <Download className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-sm mb-1">Instalar SubsManager</h3>
+            <h3 className="font-semibold text-sm mb-1">Instalar Mascripcion</h3>
             <p className="text-xs text-muted-foreground mb-3">
               Instala la app para acceso rápido y recibir recordatorios de pagos
             </p>
             <div className="flex gap-2">
-              <Button onClick={handleInstall} size="sm" className="flex-1">
+              <Button onClick={handleInstall} size="sm" className="flex-1 bg-accent hover:bg-accent">
                 Instalar
               </Button>
               <Button onClick={() => setShowInstallPrompt(false)} variant="outline" size="sm">
