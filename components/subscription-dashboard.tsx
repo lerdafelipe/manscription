@@ -240,7 +240,7 @@ export function SubscriptionDashboard({
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <header className="border-b border-emerald-200/50 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="mx-auto max-w-3xl py-4 flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
@@ -256,7 +256,7 @@ export function SubscriptionDashboard({
           </div>
         </div>
       </header>
-      <div className="mx-auto space-y-6 max-w-3xl p-4">
+      <div className="mx-auto space-y-6 max-w-3xl p-4 flex-1 w-full">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
