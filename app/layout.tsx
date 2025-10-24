@@ -13,7 +13,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Gestión de Suscripciones",
   description: "Administra todas tus suscripciones en un solo lugar",
-  generator: "v0.app",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -38,7 +37,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Suscripciones" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#3b82f6" />
+        <meta name="theme-color" content="#10b981" />
+        <link rel="icon" href="/icon-192.jpg" />
         <link rel="apple-touch-icon" href="/icon-192.jpg" />
         <script
           dangerouslySetInnerHTML={{
