@@ -205,19 +205,31 @@ export function SubscriptionDashboard({
   }
 
   return (
-    <div className="min-h-screen p-4">
-      <div className="mx-auto space-y-6">
+    <div className="min-h-screen">
+      <header className="border-b border-emerald-200/50 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="mx-auto max-w-3xl py-4 flex items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-gray-900">Manscripcion</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={handleLogout} disabled={isPending} className="cursor-pointer">
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
+      <div className="mx-auto space-y-6 max-w-3xl p-4">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-balance">Mis Suscripciones</h1>
-              <p className="mt-1 text-sm text-muted-foreground">Hola, {user.name || user.email}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Hola, {user.name || user.email}! 👋🏻👋🏻</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleLogout} disabled={isPending}>
-              <LogOut className="h-5 w-5" />
-            </Button>
           </div>
-          <Button className="w-full gap-2" onClick={() => setIsModalOpen(true)} disabled={isPending}>
+          <Button className="w-full gap-2 cursor-pointer" onClick={() => setIsModalOpen(true)} disabled={isPending}>
             <Plus className="h-4 w-4" />
             Añadir Suscripción
           </Button>
@@ -280,14 +292,14 @@ export function SubscriptionDashboard({
         <div>
           <h2 className="mb-3 text-lg font-semibold">Todas las Suscripciones</h2>
           {subscriptions.length === 0 ? (
-            <Card className="p-8 text-center">
+            <Card className="px-8 text-center">
               <p className="text-muted-foreground">No tienes suscripciones aún. Añade tu primera suscripción.</p>
             </Card>
           ) : (
             <div className="grid gap-3">
               {subscriptions.map((subscription) => (
                 <Card key={subscription.id} className="overflow-hidden">
-                  <div className="p-4">
+                  <div className="px-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -309,7 +321,7 @@ export function SubscriptionDashboard({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive"
+                        className="h-8 w-8 text-destructive cursor-pointer"
                         onClick={() => handleDeleteClick(subscription)}
                         disabled={isPending}
                       >
@@ -383,7 +395,7 @@ export function SubscriptionDashboard({
           <Card className="w-full max-w-lg animate-in slide-in-from-bottom max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b px-4 pb-2 -mt-2">
               <h2 className="text-lg font-semibold">Nueva Suscripción</h2>
-              <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)}>
+              <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} className="cursor-pointer">
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -470,7 +482,7 @@ export function SubscriptionDashboard({
                         variant="outline"
                         role="combobox"
                         aria-expanded={paymentMethodOpen}
-                        className="w-full justify-between font-normal bg-transparent"
+                        className="w-full justify-between font-normal bg-transparent cursor-pointer"
                       >
                         {formData.paymentMethod || "Selecciona un método..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -515,7 +527,7 @@ export function SubscriptionDashboard({
                         variant="outline"
                         role="combobox"
                         aria-expanded={cardOpen}
-                        className="w-full justify-between font-normal bg-transparent"
+                        className="w-full justify-between font-normal bg-transparent cursor-pointer"
                       >
                         {formData.cardLastFour || "Ingresa o selecciona..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -580,13 +592,13 @@ export function SubscriptionDashboard({
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 bg-transparent"
+                  className="flex-1 bg-transparent cursor-pointer"
                   onClick={() => setIsModalOpen(false)}
                   disabled={isPending}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1" disabled={isPending}>
+                <Button type="submit" className="flex-1 cursor-pointer" disabled={isPending}>
                   {isPending ? "Añadiendo..." : "Añadir"}
                 </Button>
               </div>
@@ -599,7 +611,7 @@ export function SubscriptionDashboard({
       {deleteConfirmation.isOpen && deleteConfirmation.subscription && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className="w-full max-w-sm animate-in fade-in zoom-in-95">
-            <div className="p-6 space-y-4">
+            <div className="space-y-4 px-4">
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold">Eliminar Suscripción</h3>
                 <p className="text-sm text-muted-foreground">
@@ -611,13 +623,13 @@ export function SubscriptionDashboard({
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  className="flex-1 bg-transparent"
+                  className="flex-1 bg-transparent cursor-pointer"
                   onClick={() => setDeleteConfirmation({ isOpen: false, subscription: null })}
                   disabled={isPending}
                 >
                   Cancelar
                 </Button>
-                <Button variant="destructive" className="flex-1" onClick={handleConfirmDelete} disabled={isPending}>
+                <Button variant="destructive" className="flex-1 cursor-pointer" onClick={handleConfirmDelete} disabled={isPending}>
                   {isPending ? "Eliminando..." : "Eliminar"}
                 </Button>
               </div>
@@ -625,6 +637,20 @@ export function SubscriptionDashboard({
           </Card>
         </div>
       )}
+
+      <footer className="bg-white border-t border-gray-200 py-4">
+        <div className="mx-auto space-y-6 max-w-3xl p-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                <CreditCard className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-bold text-gray-900">Manscripcion</span>
+            </div>
+            <div className="text-sm text-gray-600">© 2025 Manscripcion. Todos los derechos reservados.</div>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect to dashboard if already logged in
-  if (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register") {
+  if (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register" || request.nextUrl.pathname === "/") {
     if (session) {
       return NextResponse.redirect(new URL("/dashboard", request.url))
     }
