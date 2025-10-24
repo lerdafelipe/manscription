@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { unstable_cache } from "next/cache"
 
 interface ExchangeRates {
   USD: number
@@ -6,94 +7,53 @@ interface ExchangeRates {
   lastUpdate: string
 }
 
-interface CacheData {
-  rates: ExchangeRates
-  date: string
-}
-
-let cache: CacheData | null = null
-
-function getTodayDate(): string {
-  // Usar la zona horaria de Argentina para consistencia
-  return new Date().toLocaleDateString("es-AR", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).split("/").reverse().join("-")
-}
-
-function isCacheValid(): boolean {
-  if (!cache) return false
+async function fetchExchangeRates(): Promise<ExchangeRates> {
+  console.log("Fetching fresh exchange rates from API...")
   
-  const today = getTodayDate()
-  const isValid = cache.date === today
-  
-  if (!isValid) {
-    console.log(`Cache expired. Cached date: ${cache.date}, Today: ${today}`)
+  const [dolarRes, euroRes, dolarOficialRes] = await Promise.all([
+    fetch("https://dolarapi.com/v1/dolares/tarjeta"),
+    fetch("https://dolarapi.com/v1/cotizaciones/eur"),
+    fetch("https://dolarapi.com/v1/dolares/oficial"),
+  ])
+
+  if (!dolarRes.ok || !euroRes.ok || !dolarOficialRes.ok) {
+    throw new Error("Failed to fetch exchange rates")
   }
-  
-  return isValid
+
+  const [dolarData, euroData, dolarOficialData] = await Promise.all([
+    dolarRes.json(),
+    euroRes.json(),
+    dolarOficialRes.json(),
+  ])
+
+  const usdToArs = parseFloat(dolarData.venta)
+  const eurToUsd = parseFloat(euroData.compra) / parseFloat(dolarOficialData.compra)
+  const eurToArs = eurToUsd * usdToArs
+
+  if (isNaN(usdToArs) || isNaN(eurToArs)) {
+    throw new Error("Invalid exchange rate values")
+  }
+
+  return {
+    USD: Math.round(usdToArs * 100) / 100,
+    EUR: Math.round(eurToArs * 100) / 100,
+    lastUpdate: new Date().toISOString(),
+  }
 }
+
+// Cache con revalidación diaria
+const getCachedRates = unstable_cache(
+  fetchExchangeRates,
+  ["exchange-rates"], // cache key
+  {
+    revalidate: 86400, // 24 horas en segundos
+    tags: ["exchange-rates"], // para revalidación manual si necesitas
+  }
+)
 
 export async function GET() {
-  // Retornar caché si es válido
-  if (isCacheValid()) {
-    console.log("Returning cached exchange rates")
-    return NextResponse.json(cache!.rates, {
-      headers: {
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-      },
-    })
-  }
-
   try {
-    console.log("Fetching new exchange rates...")
-    
-    const [dolarRes, euroRes, dolarOficialRes] = await Promise.all([
-      fetch("https://dolarapi.com/v1/dolares/tarjeta", { 
-        next: { revalidate: 86400 } // 24 horas
-      }),
-      fetch("https://dolarapi.com/v1/cotizaciones/eur", { 
-        next: { revalidate: 86400 } 
-      }),
-      fetch("https://dolarapi.com/v1/dolares/oficial", { 
-        next: { revalidate: 86400 } 
-      }),
-    ])
-
-    if (!dolarRes.ok || !euroRes.ok || !dolarOficialRes.ok) {
-      throw new Error("Failed to fetch exchange rates")
-    }
-
-    const [dolarData, euroData, dolarOficialData] = await Promise.all([
-      dolarRes.json(),
-      euroRes.json(),
-      dolarOficialRes.json(),
-    ])
-
-    const usdToArs = parseFloat(dolarData.venta)
-    const eurToUsd = parseFloat(euroData.compra) / parseFloat(dolarOficialData.compra)
-    const eurToArs = eurToUsd * usdToArs
-
-    // Validar que los valores sean números válidos
-    if (isNaN(usdToArs) || isNaN(eurToArs)) {
-      throw new Error("Invalid exchange rate values")
-    }
-
-    const rates: ExchangeRates = {
-      USD: Math.round(usdToArs * 100) / 100, // Redondear a 2 decimales
-      EUR: Math.round(eurToArs * 100) / 100,
-      lastUpdate: new Date().toISOString(),
-    }
-
-    // Actualizar caché
-    cache = {
-      rates,
-      date: getTodayDate(),
-    }
-
-    console.log("Successfully cached new exchange rates:", rates)
+    const rates = await getCachedRates()
     
     return NextResponse.json(rates, {
       headers: {
@@ -102,21 +62,17 @@ export async function GET() {
     })
   } catch (error) {
     console.error("Error fetching exchange rates:", error)
-    
-    // Si hay un error pero tenemos caché antiguo, devolverlo como fallback
-    if (cache) {
-      console.log("Returning stale cache due to error")
-      return NextResponse.json(cache.rates, {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=3600",
-          "X-Cache-Status": "stale",
-        },
-      })
-    }
-    
     return NextResponse.json(
       { error: "Error fetching exchange rates" },
       { status: 500 }
     )
   }
+}
+
+// Opcional: Endpoint para forzar revalidación manual
+export async function POST() {
+  const { revalidateTag } = await import("next/cache")
+  revalidateTag("exchange-rates")
+  
+  return NextResponse.json({ revalidated: true })
 }
