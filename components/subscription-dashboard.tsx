@@ -106,7 +106,7 @@ export function SubscriptionDashboard({
     currency: "ARS",
   })
 
-  useState(() => {
+  useState(() => {  
     fetch("/api/exchange-rates")
       .then((res) => res.json())
       .then((data) => setExchangeRates(data))
