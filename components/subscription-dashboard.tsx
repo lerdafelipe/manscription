@@ -250,7 +250,7 @@ export function SubscriptionDashboard({
             <span className="text-xl font-bold text-gray-900">Manscripcion</span>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={handleLogout} disabled={isPending} className="cursor-pointer">
+            <Button variant="ghost" size="icon" onClick={handleLogout} disabled={isPending} className="cursor-pointer hover:bg-destructive/80">
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
@@ -264,7 +264,7 @@ export function SubscriptionDashboard({
               <p className="mt-1 text-sm text-muted-foreground">Hola, {user.name || user.email}! 👋🏻👋🏻</p>
             </div>
           </div>
-          <Button className="w-full gap-2 cursor-pointer" onClick={() => setIsModalOpen(true)} disabled={isPending}>
+          <Button className="w-full gap-2 cursor-pointer bg-accent hover:bg-accent/80" onClick={() => setIsModalOpen(true)} disabled={isPending}>
             <Plus className="h-4 w-4" />
             Añadir Suscripción
           </Button>
@@ -361,7 +361,7 @@ export function SubscriptionDashboard({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-destructive cursor-pointer"
+                          className="h-8 w-8 text-destructive cursor-pointer hover:bg-destructive/80"
                           onClick={() => handleDeleteClick(subscription)}
                           disabled={isPending}
                         >
@@ -441,7 +441,7 @@ export function SubscriptionDashboard({
           <Card className="w-full max-w-lg animate-in slide-in-from-bottom max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b px-4 pb-2 -mt-2">
               <h2 className="text-lg font-semibold">Nueva Suscripción</h2>
-              <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} className="cursor-pointer">
+              <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} className="cursor-pointer hover:bg-destructive/80">
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -454,20 +454,21 @@ export function SubscriptionDashboard({
                       variant="outline"
                       role="combobox"
                       aria-expanded={nameOpen}
-                      className="w-full justify-between font-normal bg-transparent cursor-pointer"
+                      className="w-full justify-between font-normal bg-transparent cursor-pointer hover:bg-accent-foreground hover:text-black"
                     >
                       {formData.name || "Netflix, Spotify, etc."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0" align="start">
-                    <Command>
+                    <Command className="w-full">
                       <CommandInput
                         placeholder="Buscar o ingresar..."
                         value={formData.name}
                         onValueChange={(value) => setFormData({ ...formData, name: value })}
+                        className="w-full"
                       />
-                      <CommandList>
+                      <CommandList className="w-full">
                         {uniqueNames.length === 0 ? (
                           <CommandEmpty>Ingresa el nombre de la suscripción.</CommandEmpty>
                         ) : (
@@ -480,6 +481,7 @@ export function SubscriptionDashboard({
                                   setFormData({ ...formData, name: currentValue })
                                   setNameOpen(false)
                                 }}
+                                className={cn(formData.name === name && "bg-accent-foreground/10", "hover:bg-white")}
                               >
                                 <Check
                                   className={cn("mr-2 h-4 w-4", formData.name === name ? "opacity-100" : "opacity-0")}
@@ -571,7 +573,7 @@ export function SubscriptionDashboard({
                       variant="outline"
                       role="combobox"
                       aria-expanded={categoryOpen}
-                      className="w-full justify-between font-normal bg-transparent cursor-pointer"
+                      className="w-full justify-between font-normal bg-transparent cursor-pointer hover:bg-accent-foreground hover:text-black"
                     >
                       {formData.category || "Selecciona una categoría..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -617,7 +619,7 @@ export function SubscriptionDashboard({
                         variant="outline"
                         role="combobox"
                         aria-expanded={paymentMethodOpen}
-                        className="w-full justify-between font-normal bg-transparent cursor-pointer"
+                        className="w-full justify-between font-normal bg-transparent cursor-pointer hover:bg-accent-foreground hover:text-black"
                       >
                         {formData.paymentMethod || "Selecciona un método..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -662,7 +664,7 @@ export function SubscriptionDashboard({
                         variant="outline"
                         role="combobox"
                         aria-expanded={cardOpen}
-                        className="w-full justify-between font-normal bg-transparent cursor-pointer"
+                        className="w-full justify-between font-normal bg-transparent cursor-pointer hover:bg-accent-foreground hover:text-black"
                       >
                         {formData.cardLastFour || "Ingresa o selecciona..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -727,13 +729,13 @@ export function SubscriptionDashboard({
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 bg-transparent cursor-pointer"
+                  className="flex-1 bg-transparent cursor-pointer hover:bg-destructive/80"
                   onClick={() => setIsModalOpen(false)}
                   disabled={isPending}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1 cursor-pointer" disabled={isPending}>
+                <Button type="submit" className="flex-1 cursor-pointer bg-accent hover:bg-accent/80" disabled={isPending}>
                   {isPending ? "Añadiendo..." : "Añadir"}
                 </Button>
               </div>
@@ -758,7 +760,7 @@ export function SubscriptionDashboard({
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  className="flex-1 bg-transparent cursor-pointer"
+                  className="flex-1 bg-transparent cursor-pointer hover:bg-accent-foreground hover:text-black"
                   onClick={() => setDeleteConfirmation({ isOpen: false, subscription: null })}
                   disabled={isPending}
                 >
@@ -766,7 +768,7 @@ export function SubscriptionDashboard({
                 </Button>
                 <Button
                   variant="destructive"
-                  className="flex-1 cursor-pointer"
+                  className="flex-1 cursor-pointer hover:bg-destructive/80"
                   onClick={handleConfirmDelete}
                   disabled={isPending}
                 >
@@ -787,7 +789,7 @@ export function SubscriptionDashboard({
               </div>
               <span className="font-bold text-gray-900">Manscripcion</span>
             </div>
-            <div className="text-sm text-gray-600">© 2025 Manscripcion. Todos los derechos reservados.</div>
+            <div className="text-sm text-gray-600">© 2025</div>
           </div>
         </div>
       </footer>
