@@ -1,11 +1,11 @@
 {
-  "name": "Gestor de Suscripciones",
+  "name": "Manscripcion",
   "short_name": "Manscripcion",
   "description": "Gestiona todas tus suscripciones en un solo lugar",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#3b82f6",
+  "background_color": "#10b981",
+  "theme_color": "#10b981",
   "orientation": "portrait",
   "icons": [
     {
