@@ -247,7 +247,7 @@ export function LandingPage() {
               </div>
               <span className="font-bold text-gray-900">Manscripcion</span>
             </div>
-            <div className="text-sm text-gray-600">© 2025 Manscripcion. Todos los derechos reservados.</div>
+            <div className="text-sm text-gray-600">© 2025 Manscripcion.</div>
           </div>
         </div>
       </footer>
