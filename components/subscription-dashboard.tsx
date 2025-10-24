@@ -30,6 +30,12 @@ interface Subscription {
   payment_method?: string | null
 }
 
+interface ExchangeRates {
+  USD: number
+  EUR: number
+  lastUpdate: string
+}
+
 const CATEGORIES = [
   "Entretenimiento",
   "Streaming",
@@ -81,9 +87,12 @@ export function SubscriptionDashboard({
     subscription: null,
   })
 
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates | null>(null)
+
   const [categoryOpen, setCategoryOpen] = useState(false)
   const [paymentMethodOpen, setPaymentMethodOpen] = useState(false)
   const [cardOpen, setCardOpen] = useState(false)
+  const [nameOpen, setNameOpen] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -94,7 +103,14 @@ export function SubscriptionDashboard({
     bank: "",
     cardLastFour: "",
     category: "",
-    currency: "USD",
+    currency: "ARS",
+  })
+
+  useState(() => {
+    fetch("/api/exchange-rates")
+      .then((res) => res.json())
+      .then((data) => setExchangeRates(data))
+      .catch((err) => console.error("[v0] Error fetching exchange rates:", err))
   })
 
   const uniqueCards = useMemo(() => {
@@ -102,13 +118,36 @@ export function SubscriptionDashboard({
     return Array.from(new Set(cards))
   }, [subscriptions])
 
+  const uniqueNames = useMemo(() => {
+    const names = subscriptions.map((sub) => sub.name)
+    return Array.from(new Set(names))
+  }, [subscriptions])
+
+  const convertToARS = (amount: number, currency: string) => {
+    if (!exchangeRates) return amount
+    if (currency === "ARS") return amount
+    if (currency === "USD") return amount * exchangeRates.USD
+    if (currency === "EUR") return amount * exchangeRates.EUR
+    return amount
+  }
+
+  const convertFromARS = (amountARS: number, targetCurrency: string) => {
+    if (!exchangeRates) return amountARS
+    if (targetCurrency === "ARS") return amountARS
+    if (targetCurrency === "USD") return amountARS / exchangeRates.USD
+    if (targetCurrency === "EUR") return amountARS / exchangeRates.EUR
+    return amountARS
+  }
+
   const calculateMonthlyTotal = () => {
     return subscriptions.reduce((total, sub) => {
       let monthlyAmount = Number.parseFloat(sub.amount)
       if (sub.period === "Anual") monthlyAmount = monthlyAmount / 12
       if (sub.period === "Trimestral") monthlyAmount = monthlyAmount / 3
       if (sub.period === "Semestral") monthlyAmount = monthlyAmount / 6
-      return total + monthlyAmount
+
+      const amountInARS = convertToARS(monthlyAmount, sub.currency || "ARS")
+      return total + amountInARS
     }, 0)
   }
 
@@ -125,15 +164,14 @@ export function SubscriptionDashboard({
       category: formData.category,
       currency: formData.currency,
     }
-  
+
     startTransition(async () => {
       const result = await addSubscription(newSubscription)
-  
+
       if (result.success) {
-        // Actualizar el estado local con la nueva suscripción
         if (!result.subscription) return
         setSubscriptions((prev) => [...prev, result.subscription])
-        
+
         setIsModalOpen(false)
         setFormData({
           name: "",
@@ -144,7 +182,7 @@ export function SubscriptionDashboard({
           bank: "",
           cardLastFour: "",
           category: "",
-          currency: "USD",
+          currency: "ARS",
         })
         router.refresh()
       }
@@ -157,16 +195,13 @@ export function SubscriptionDashboard({
 
   const handleConfirmDelete = async () => {
     if (!deleteConfirmation.subscription) return
-  
+
     startTransition(async () => {
       if (!deleteConfirmation.subscription) return
       const result = await deleteSubscription(deleteConfirmation.subscription.id)
       if (result.success) {
-        // Actualizar el estado local removiendo la suscripción eliminada
-        setSubscriptions(prev => 
-          prev.filter(sub => sub.id !== deleteConfirmation.subscription?.id)
-        )
-        
+        setSubscriptions((prev) => prev.filter((sub) => sub.id !== deleteConfirmation.subscription?.id))
+
         setDeleteConfirmation({ isOpen: false, subscription: null })
         router.refresh()
       }
@@ -182,7 +217,7 @@ export function SubscriptionDashboard({
   }
 
   const getCurrencySymbol = (code?: string) => {
-    const currency = CURRENCIES.find((c) => c.code === (code || "USD"))
+    const currency = CURRENCIES.find((c) => c.code === (code || "ARS"))
     return currency?.symbol || "$"
   }
 
@@ -241,7 +276,7 @@ export function SubscriptionDashboard({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Gasto Mensual</p>
-                <p className="mt-1 text-2xl font-bold">${monthlyTotal.toFixed(2)}</p>
+                <p className="mt-1 text-2xl font-bold">$ {monthlyTotal.toFixed(2)} ARS</p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                 <TrendingUp className="h-5 w-5 text-primary" />
@@ -254,7 +289,7 @@ export function SubscriptionDashboard({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Gasto Anual</p>
-                <p className="mt-1 text-2xl font-bold">${annualTotal.toFixed(2)}</p>
+                <p className="mt-1 text-2xl font-bold">$ {annualTotal.toFixed(2)} ARS</p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
                 <Calendar className="h-5 w-5 text-accent" />
@@ -297,94 +332,105 @@ export function SubscriptionDashboard({
             </Card>
           ) : (
             <div className="grid gap-3">
-              {subscriptions.map((subscription) => (
-                <Card key={subscription.id} className="overflow-hidden">
-                  <div className="px-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                          <img
-                            src={subscription.logo_url || "/placeholder.svg?height=40&width=40"}
-                            alt={subscription.name}
-                            className="h-6 w-6 rounded"
-                          />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-semibold">{subscription.name}</h3>
-                          {subscription.category && (
-                            <Badge variant="secondary" className="mt-1 text-xs">
-                              {subscription.category}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive cursor-pointer"
-                        onClick={() => handleDeleteClick(subscription)}
-                        disabled={isPending}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+              {subscriptions.map((subscription) => {
+                const amount = Number.parseFloat(subscription.amount)
+                const amountInARS = convertToARS(amount, subscription.currency || "ARS")
+                const showConversion = subscription.currency && subscription.currency !== "ARS" && exchangeRates
 
-                    <div className="mt-4 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Cantidad</span>
-                        <span className="text-base font-bold">
-                          {getCurrencySymbol(subscription.currency)}
-                          {Number.parseFloat(subscription.amount).toFixed(2)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Periodo</span>
-                        <Badge variant="outline" className="text-xs">
-                          {subscription.period}
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Próximo pago</span>
-                        <span className="text-xs font-medium">
-                          {new Date(subscription.next_payment_date).toLocaleDateString("es-ES", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </span>
-                      </div>
-
-                      {subscription.payment_method && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Método de pago</span>
-                          <span className="text-xs font-medium">{subscription.payment_method}</span>
-                        </div>
-                      )}
-
-                      {subscription.bank && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Detalles</span>
-                          <span className="text-xs font-medium">{subscription.bank}</span>
-                        </div>
-                      )}
-
-                      {subscription.card_last_four && (
-                        <div className="border-t pt-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Tarjeta</span>
-                            <div className="flex items-center gap-1.5">
-                              <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-xs font-medium">•••• {subscription.card_last_four}</span>
-                            </div>
+                return (
+                  <Card key={subscription.id} className="overflow-hidden">
+                    <div className="px-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                            <img
+                              src={subscription.logo_url || "/placeholder.svg?height=40&width=40"}
+                              alt={subscription.name}
+                              className="h-6 w-6 rounded"
+                            />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-semibold">{subscription.name}</h3>
+                            {subscription.category && (
+                              <Badge variant="secondary" className="mt-1 text-xs">
+                                {subscription.category}
+                              </Badge>
+                            )}
                           </div>
                         </div>
-                      )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive cursor-pointer"
+                          onClick={() => handleDeleteClick(subscription)}
+                          disabled={isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="mt-4 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Cantidad</span>
+                          <div className="text-right">
+                            <span className="text-base font-bold">
+                              {getCurrencySymbol(subscription.currency)}
+                              {amount.toFixed(2)}
+                            </span>
+                            {showConversion && (
+                              <div className="text-xs text-muted-foreground">≈ $ {amountInARS.toFixed(2)} ARS</div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Periodo</span>
+                          <Badge variant="outline" className="text-xs">
+                            {subscription.period}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Próximo pago</span>
+                          <span className="text-xs font-medium">
+                            {new Date(subscription.next_payment_date).toLocaleDateString("es-ES", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+
+                        {subscription.payment_method && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Método de pago</span>
+                            <span className="text-xs font-medium">{subscription.payment_method}</span>
+                          </div>
+                        )}
+
+                        {subscription.bank && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Detalles</span>
+                            <span className="text-xs font-medium">{subscription.bank}</span>
+                          </div>
+                        )}
+
+                        {subscription.card_last_four && (
+                          <div className="border-t pt-2.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Tarjeta</span>
+                              <div className="flex items-center gap-1.5">
+                                <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-xs font-medium">•••• {subscription.card_last_four}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                )
+              })}
             </div>
           )}
         </div>
@@ -401,23 +447,62 @@ export function SubscriptionDashboard({
             </div>
             <form onSubmit={handleAddSubscription} className="space-y-4 px-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nombre</Label>
-                <Input
-                  id="name"
-                  placeholder="Netflix, Spotify, etc."
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+                <Label>Nombre *</Label>
+                <Popover open={nameOpen} onOpenChange={setNameOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={nameOpen}
+                      className="w-full justify-between font-normal bg-transparent cursor-pointer"
+                    >
+                      {formData.name || "Netflix, Spotify, etc."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput
+                        placeholder="Buscar o ingresar..."
+                        value={formData.name}
+                        onValueChange={(value) => setFormData({ ...formData, name: value })}
+                      />
+                      <CommandList>
+                        {uniqueNames.length === 0 ? (
+                          <CommandEmpty>Ingresa el nombre de la suscripción.</CommandEmpty>
+                        ) : (
+                          <CommandGroup heading="Suscripciones guardadas">
+                            {uniqueNames.map((name) => (
+                              <CommandItem
+                                key={name}
+                                value={name}
+                                onSelect={(currentValue) => {
+                                  setFormData({ ...formData, name: currentValue })
+                                  setNameOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn("mr-2 h-4 w-4", formData.name === name ? "opacity-100" : "opacity-0")}
+                                />
+                                {name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Cantidad</Label>
+                  <Label htmlFor="amount">Cantidad *</Label>
                   <Input
                     id="amount"
                     type="number"
                     step="0.01"
+                    min="0.01"
                     placeholder="15.99"
                     value={formData.amount}
                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -426,10 +511,11 @@ export function SubscriptionDashboard({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="currency">Moneda</Label>
+                  <Label htmlFor="currency">Moneda *</Label>
                   <Select
                     value={formData.currency}
                     onValueChange={(value) => setFormData({ ...formData, currency: value })}
+                    required
                   >
                     <SelectTrigger id="currency" className="w-full">
                       <SelectValue />
@@ -447,8 +533,12 @@ export function SubscriptionDashboard({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="period">Periodo</Label>
-                  <Select value={formData.period} onValueChange={(value) => setFormData({ ...formData, period: value })}>
+                  <Label htmlFor="period">Periodo *</Label>
+                  <Select
+                    value={formData.period}
+                    onValueChange={(value) => setFormData({ ...formData, period: value })}
+                    required
+                  >
                     <SelectTrigger id="period" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -462,7 +552,7 @@ export function SubscriptionDashboard({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="nextPaymentDate">Próximo Pago</Label>
+                  <Label htmlFor="nextPaymentDate">Próximo Pago *</Label>
                   <Input
                     id="nextPaymentDate"
                     type="date"
@@ -473,9 +563,54 @@ export function SubscriptionDashboard({
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label>Categoría *</Label>
+                <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={categoryOpen}
+                      className="w-full justify-between font-normal bg-transparent cursor-pointer"
+                    >
+                      {formData.category || "Selecciona una categoría..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar categoría..." />
+                      <CommandList>
+                        <CommandEmpty>No se encontró la categoría.</CommandEmpty>
+                        <CommandGroup>
+                          {CATEGORIES.map((category) => (
+                            <CommandItem
+                              key={category}
+                              value={category}
+                              onSelect={(currentValue) => {
+                                setFormData({ ...formData, category: currentValue })
+                                setCategoryOpen(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.category === category ? "opacity-100" : "opacity-0",
+                                )}
+                              />
+                              {category}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Método de Pago</Label>
+                  <Label>Método de Pago *</Label>
                   <Popover open={paymentMethodOpen} onOpenChange={setPaymentMethodOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -629,7 +764,12 @@ export function SubscriptionDashboard({
                 >
                   Cancelar
                 </Button>
-                <Button variant="destructive" className="flex-1 cursor-pointer" onClick={handleConfirmDelete} disabled={isPending}>
+                <Button
+                  variant="destructive"
+                  className="flex-1 cursor-pointer"
+                  onClick={handleConfirmDelete}
+                  disabled={isPending}
+                >
                   {isPending ? "Eliminando..." : "Eliminar"}
                 </Button>
               </div>
